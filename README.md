@@ -1,7 +1,7 @@
-# Project: NAME
+# Project: WordMiner
 
 ## Contributors
-NAME, NAME, NAME
+Ruitao Zhou
 
 ## Dependencies
 - LANGUAGE AND VERSION
