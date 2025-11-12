@@ -1,0 +1,14 @@
+com\wordminer\dictionary\DictionaryLoader.class
+com\wordminer\db\Storage.class
+com\wordminer\model\TokenStat.class
+com\wordminer\dictionary\DictionaryEntry$Phrase.class
+com\wordminer\WordMinerApplication.class
+com\wordminer\analysis\AnalysisResult.class
+com\wordminer\dictionary\DictionaryLoader$Level.class
+com\wordminer\model\VocabStatus.class
+com\wordminer\model\Article.class
+com\wordminer\db\StorageException.class
+com\wordminer\model\ArticleSummary.class
+com\wordminer\analysis\TextAnalyzer.class
+com\wordminer\dictionary\DictionaryEntry.class
+com\wordminer\dictionary\DictionaryEntry$Translation.class
