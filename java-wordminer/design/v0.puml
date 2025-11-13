@@ -1,0 +1,213 @@
+@startuml
+title WordMiner MVP - Correct Three Layer Architecture
+
+' ===========================================================
+' Presentation Layer - 表现层
+' ===========================================================
+package presentation {
+    class MainWindow {
+        -articleTable: JTable
+        -tableModel: DefaultTableModel
+        -articleService: ArticleService
+        +display()
+        +onImportArticle()
+        +refreshArticleList()
+        -onDeleteArticle()
+    }
+    
+    note right of MainWindow
+        表现层：
+        - 负责UI交互
+        - 依赖 domain.ArticleService
+        - 不直接访问数据库
+    end note
+}
+
+' ===========================================================
+' Domain Layer - 业务逻辑层
+' ===========================================================
+package domain {
+
+    class ArticleService {
+        -articleRepository: IArticleRepository
+        +ArticleService(repository: IArticleRepository)
+        +importArticle(file: File): Article
+        +listArticles(): List<Article>
+        +getArticleById(id: int): Article
+        +deleteArticle(id: int): boolean
+        +getWordCount(article: Article): int
+        +getUniqueWordCount(article: Article): int
+        +getArticleStats(article: Article): ArticleStats
+        +getAllArticleStats(): List<ArticleStats>
+        +getWordFrequency(article: Article, word: String): int
+        -validateArticle(article: Article)
+    }
+    
+    class ArticleStats {
+        -id: int
+        -title: String
+        -wordCount: int
+        -uniqueWordCount: int
+        -importDate: Timestamp
+        +getVocabularyRichness(): double
+        +getDifficultyLevel(): String
+    }
+    
+    note right of ArticleService
+        ✅ 业务逻辑层：
+        - 处理所有业务逻辑
+        - 词数统计
+        - 独立词数计算
+        - 文章验证
+        - 依赖 datasource 的接口和数据类
+        - 符合三层架构原则
+    end note
+    
+    note right of ArticleStats
+        Domain Model：
+        - 封装业务计算结果
+        - 包含业务方法
+        - 不是数据库表映射
+    end note
+}
+
+' ===========================================================
+' DataSource Layer - 数据访问层
+' ===========================================================
+package datasource {
+    class Article {
+        -id: int
+        -title: String
+        -content: String
+        -importDate: Timestamp
+        +getId(): int
+        +getTitle(): String
+        +getContent(): String
+        +setId(id: int)
+        +setTitle(title: String)
+        +setContent(content: String)
+    }
+    
+    interface IArticleRepository {
+        +save(article: Article): Article
+        +findAll(): List<Article>
+        +findById(id: int): Article
+        +delete(id: int): boolean
+        +update(article: Article): boolean
+    }
+    
+    class ArticleDao implements IArticleRepository {
+        -dataSource: SQLiteDataSource
+        +save(article: Article): Article
+        +findAll(): List<Article>
+        +findById(id: int): Article
+        +delete(id: int): boolean
+        +update(article: Article): boolean
+    }
+    
+    class SQLiteDataSource {
+        -instance: SQLiteDataSource {static}
+        +getInstance(): SQLiteDataSource {static}
+        +getConnection(): Connection
+        -initSchema()
+    }
+    
+    note right of Article
+        ✅ 纯数据类 (DTO)：
+        - 只有 getter/setter
+        - 没有业务逻辑
+        - 数据库表的直接映射
+        - 放在 datasource 层
+        
+        这避免了 DAO 依赖 domain 层！
+    end note
+    
+    note right of IArticleRepository
+        Repository Pattern：
+        - 抽象数据访问
+        - 依赖 datasource.Article
+        - 不依赖 domain 层
+    end note
+}
+
+' ===========================================================
+' Relationships - 依赖关系
+' ===========================================================
+MainWindow --> ArticleService : uses
+MainWindow ..> ArticleStats : displays
+
+ArticleService --> IArticleRepository : depends on
+ArticleService ..> Article : uses (data)
+ArticleService ..> ArticleStats : creates
+
+ArticleDao ..|> IArticleRepository : implements
+ArticleDao --> SQLiteDataSource : uses
+ArticleDao ..> Article : persists
+
+' ===========================================================
+' Layer Dependency Rules
+' ===========================================================
+note bottom of domain
+    <b>✅ 正确的分层依赖</b>
+    
+    Presentation → Domain → DataSource
+    
+    ✅ Presentation 依赖 Domain
+    ✅ Domain 依赖 DataSource (接口 + 数据类)
+    ✅ DataSource 不依赖任何层
+    
+    <b>关键改进：</b>
+    • Article 是纯数据类，放在 datasource
+    • ArticleService 包含所有业务逻辑
+    • ArticleStats 是 domain 模型
+    • 符合传统三层架构原则
+end note
+
+' ===========================================================
+' Design Patterns
+' ===========================================================
+note top of SQLiteDataSource
+    <b>Pattern: Singleton</b>
+    确保单一数据库连接
+end note
+
+note top of IArticleRepository
+    <b>Pattern: Repository</b>
+    统一数据访问接口
+end note
+
+note top of ArticleService
+    <b>Pattern: Service Layer</b>
+    封装业务逻辑
+    Domain Service
+end note
+
+' ===========================================================
+' Key Benefits
+' ===========================================================
+legend right
+    <b>架构优势</b>
+    
+    ✅ <b>符合三层架构</b>
+    - DataSource 不依赖 Domain
+    - Article 是纯数据类
+    - 业务逻辑在 ArticleService
+    
+    ✅ <b>职责清晰</b>
+    - Article: 数据存储
+    - ArticleService: 业务逻辑
+    - ArticleStats: 业务模型
+    - ArticleDao: 数据访问
+    
+    ✅ <b>易于扩展</b>
+    - 添加新的统计方法到 ArticleService
+    - 添加新的 Repository 实现
+    - 不影响其他层
+    
+    ✅ <b>易于测试</b>
+    - ArticleService 可用 Mock Repository
+    - 业务逻辑独立测试
+end legend
+
+@enduml
+
