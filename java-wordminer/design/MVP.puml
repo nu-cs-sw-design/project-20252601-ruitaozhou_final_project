@@ -2,6 +2,10 @@
 title WordMiner MVP - Domain-Driven Design Architecture
 
 
+class App {
+    +main(args: String[])
+}
+
 ' ===========================================================
 ' Presentation Layer - 表现层
 ' ===========================================================
@@ -148,11 +152,27 @@ package datasource {
 ' ===========================================================
 ' Dependencies
 ' ===========================================================
+App ..> SQLiteArticleDAO
+App ..> LocalFileLoader
+App ..> ArticleDataMapper
+App ..> ArticleRepository
+App ..> MainWindow
+
+MainWindow --> domain.ArticleRepository
+
+domain.ArticleRepository -->"*" domain.Article
 domain.ArticleRepository --> datasource.DBLoader
 domain.ArticleRepository --> datasource.DBSaver
 domain.ArticleRepository --> datasource.FileLoader
 domain.ArticleRepository --> domain.ArticleDataMapper
-domain.ArticleDataMapper --> datasource.DBArticleDTO
+domain.ArticleRepository ..> DBArticleDTO
+
+domain.ArticleDataMapper ..> datasource.DBArticleDTO
+domain.ArticleDataMapper ..> domain.Article
+
+datasource.DBLoader ..> DBArticleDTO
+
+datasource.SQLiteArticleDAO ..> datasource.DBArticleDTO
 datasource.SQLiteArticleDAO --> datasource.SQLiteDataSource
 
 @enduml

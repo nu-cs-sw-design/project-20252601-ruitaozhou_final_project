@@ -1,7 +1,7 @@
 package domain;
 
-import java.sql.Timestamp;
-import java.util.Arrays;
+// import java.sql.Timestamp;
+// import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -18,7 +18,7 @@ public class Article {
     private int id;
     private String title;
     private String content;
-    private Timestamp importDate;
+    // private Timestamp importDate;
 
     // Constructors
     public Article() {}
@@ -61,13 +61,13 @@ public class Article {
         this.content = content;
     }
 
-    public Timestamp getImportDate() {
-        return importDate;
-    }
+    // public Timestamp getImportDate() {
+    //     return importDate;
+    // }
 
-    public void setImportDate(Timestamp importDate) {
-        this.importDate = importDate;
-    }
+    // public void setImportDate(Timestamp importDate) {
+    //     this.importDate = importDate;
+    // }
 
     // ============ Business Logic Methods (领域行为) ============
 
