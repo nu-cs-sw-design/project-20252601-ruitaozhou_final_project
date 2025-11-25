@@ -1,0 +1,98 @@
+@startuml Messy WordMiner Design
+
+' title WordMiner - Intentionally Messy "All-in-One" Architecture
+' note top
+'   This is a deliberately "messy" design where all functionality 
+'   is crammed into a single monolithic class.
+  
+'   **Anti-patterns used:**
+'   - God Object (WordMinerApp does everything)
+'   - No separation of concerns
+'   - Direct database access mixed with UI code
+'   - Business logic embedded in event handlers
+'   - No interfaces or abstractions
+'   - Tight coupling everywhere
+  
+'   **Despite being messy, it implements ALL requirements:**
+'   ✓ UC1-UC8 from software-requirement-document.md
+'   ✓ Stanford CoreNLP integration
+'   ✓ SQLite persistence
+'   ✓ Swing GUI with all features
+' end note
+
+' package "com.wordminer" {
+    
+' }
+
+class WordMinerApp {
+    - dbConnection: Connection
+    - pipeline: StanfordCoreNLP
+    - dictionary: Map<String, DictEntry>
+    - userWords: Map<String, String>
+    - readingProgress: Map<Integer, Integer>
+    - articleTable: JTable
+    - tableModel: DefaultTableModel
+    - importBtn: JButton
+    - deleteBtn: JButton
+    - reportBtn: JButton
+    - readBtn: JButton
+    - labelsBtn: JButton
+    - currentArticleId: int
+    
+    + WordMinerApp()
+    - initDatabase(): void
+    - loadDictionary(): void
+    - loadUserWords(): void
+    - saveReadingProgress(articleId: int, position: int): void
+    - getReadingProgress(articleId: int): int
+    - initNLP(): void
+    - tokenizeAndLemmatize(text: String): List<String>
+    - countWords(lemmas: List<String>): Map<String, Integer>
+    - initGUI(): void
+    - refreshArticleList(): void
+    - importArticle(): void
+    - deleteArticle(): void
+    - showReport(): void
+    - readArticle(): void
+    - showLabeledWords(): void
+    - exportToCSV(): void
+    + {static} main(args: String[]): void
+}
+
+class ReadingWindow {
+    - frame: JFrame
+    - textPane: JTextPane
+    - doc: StyledDocument
+    - articleId: int
+    - content: String
+    - lemmas: List<String>
+    - wordPositions: Map<Integer, String>
+    
+    + ReadingWindow(articleId: int, title: String, content: String)
+    - displayWithHighlighting(): void
+    - addWordClickListener(): void
+    - showWordPopup(lemma: String, location: Point): void
+    - updateLabel(lemma: String, label: String): void
+    - reHighlight(): void
+    - savePosition(): void
+}
+
+class DictEntry {
+    + levels: List<String>
+    + data: Map<String, Object>
+    + DictEntry()
+}
+
+class JFrame <<external>>
+class Connection <<external>>
+class StanfordCoreNLP <<external>>
+class Gson <<external>>
+
+WordMinerApp --> ReadingWindow
+WordMinerApp --> DictEntry
+WordMinerApp ..> Connection
+WordMinerApp ..> StanfordCoreNLP
+WordMinerApp ..> Gson
+WordMinerApp --|> JFrame
+
+@enduml

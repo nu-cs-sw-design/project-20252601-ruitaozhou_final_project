@@ -1,0 +1,412 @@
+@startuml Flexible WordMiner Design - Strict 3-Layer with No Reverse Dependencies
+
+title WordMiner - Strict 3-Layer Architecture (No Reverse Dependencies)
+
+package "Presentation Layer" {
+    
+    interface IMainView {
+        + displayArticles(articles: List<Article>): void
+        + getSelectedArticleId(): int
+        + showError(message: String): void
+        + show(): void
+    }
+    
+    interface IReadingView {
+        + displayContent(content: String, highlights: Map<Integer, String>): void
+        + showWordPopup(definition: WordDefinition): void
+        + showError(message: String): void
+        + show(): void
+    }
+    
+    interface IReportView {
+        + displayStatistics(stats: VocabularyStats): void
+        + showError(message: String): void
+        + show(): void
+    }
+    
+    class MainView {
+        - presenter: MainPresenter
+        - articleTable: JTable
+        
+        + MainView(presenter: MainPresenter)
+        + displayArticles(articles: List<Article>): void
+        + getSelectedArticleId(): int
+        + showError(message: String): void
+        + show(): void
+    }
+    
+    class ReadingView {
+        - presenter: ReadingPresenter
+        - textPane: JTextPane
+        
+        + ReadingView(presenter: ReadingPresenter)
+        + displayContent(content: String, highlights: Map<Integer, String>): void
+        + showWordPopup(definition: WordDefinition): void
+        + showError(message: String): void
+        + show(): void
+    }
+    
+    class ReportView {
+        - presenter: ReportPresenter
+        - statsPanel: JPanel
+        
+        + ReportView(presenter: ReportPresenter)
+        + displayStatistics(stats: VocabularyStats): void
+        + showError(message: String): void
+        + show(): void
+    }
+    
+    class MainPresenter {
+        - view: IMainView
+        - articleManager: ArticleManager
+        
+        + MainPresenter(articleManager: ArticleManager)
+        + setView(view: IMainView): void
+        + onImportArticle(filePath: String): void
+        + onDeleteArticle(): void
+        + onOpenReading(): void
+        + onShowReport(): void
+        + refreshArticleList(): void
+    }
+    
+    class ReadingPresenter {
+        - view: IReadingView
+        - articleManager: ArticleManager
+        - vocabularyManager: VocabularyManager
+        - progressTracker: ProgressTracker
+        
+        + ReadingPresenter(articleManager: ArticleManager, vocabularyManager: VocabularyManager, progressTracker: ProgressTracker)
+        + setView(view: IReadingView): void
+        + loadArticle(articleId: int): void
+        + onWordClick(position: int): void
+        + onLabelWord(lemma: String, label: String): void
+        + onScrollChange(position: int): void
+    }
+    
+    class ReportPresenter {
+        - view: IReportView
+        - vocabularyManager: VocabularyManager
+        - exporter: CSVExporter
+        
+        + ReportPresenter(vocabularyManager: VocabularyManager, exporter: CSVExporter)
+        + setView(view: IReportView): void
+        + loadReport(articleId: int): void
+        + onExportCSV(): void
+    }
+}
+
+package "Domain Layer" {
+    
+    class ArticleManager {
+        - articleDao: IArticleDao
+        - nlpProcessor: NLPProcessor
+        
+        + ArticleManager(articleDao: IArticleDao, nlpProcessor: NLPProcessor)
+        + importArticle(filePath: String): int
+        + deleteArticle(articleId: int): void
+        + getArticle(articleId: int): Article
+        + getAllArticles(): List<Article>
+        - readFile(filePath: String): String
+        - buildArticle(data: Map<String, Object>): Article
+    }
+    
+    class VocabularyManager {
+        - dictionaryDao: IDictionaryDao
+        - userWordDao: IUserWordDao
+        - nlpProcessor: NLPProcessor
+        
+        + VocabularyManager(dictionaryDao: IDictionaryDao, userWordDao: IUserWordDao, nlpProcessor: NLPProcessor)
+        + analyzeArticle(content: String): VocabularyStats
+        + getWordDefinition(lemma: String): WordDefinition
+        + labelWord(lemma: String, label: String): void
+        + getLabeledWords(label: String): List<UserWord>
+        + getHighlights(content: String): Map<Integer, String>
+        - buildDefinition(data: Map<String, Object>): WordDefinition
+        - buildUserWord(data: Map<String, Object>): UserWord
+    }
+    
+    class ProgressTracker {
+        - progressDao: IProgressDao
+        
+        + ProgressTracker(progressDao: IProgressDao)
+        + saveProgress(articleId: int, position: int): void
+        + getProgress(articleId: int): int
+    }
+    
+    class CSVExporter {
+        - userWordDao: IUserWordDao
+        
+        + CSVExporter(userWordDao: IUserWordDao)
+        + exportByLabel(label: String, filePath: String): void
+        + exportAll(outputDir: String): void
+    }
+    
+    class NLPProcessor {
+        - pipeline: StanfordCoreNLP
+        
+        + NLPProcessor()
+        + tokenize(text: String): List<String>
+        + lemmatize(text: String): List<String>
+        + analyzeWords(text: String): WordAnalysis
+    }
+    
+    class Article {
+        - id: int
+        - title: String
+        - content: String
+        - filePath: String
+        - totalWords: int
+        - uniqueWords: int
+        - importDate: String
+        
+        + Article(id: int, title: String, content: String)
+        + getId(): int
+        + getTitle(): String
+        + getContent(): String
+        + getTotalWords(): int
+        + getUniqueWords(): int
+        + getImportDate(): String
+        + setId(id: int): void
+        + setTotalWords(count: int): void
+        + setUniqueWords(count: int): void
+    }
+    
+    class WordDefinition {
+        - lemma: String
+        - level: String
+        - translations: List<Translation>
+        - phrases: List<Phrase>
+        
+        + WordDefinition(lemma: String, level: String)
+        + getLemma(): String
+        + getLevel(): String
+        + getTranslations(): List<Translation>
+        + getPhrases(): List<Phrase>
+        + addTranslation(translation: Translation): void
+        + addPhrase(phrase: Phrase): void
+    }
+    
+    class Translation {
+        - text: String
+        - type: String
+        
+        + Translation(text: String, type: String)
+        + getText(): String
+        + getType(): String
+    }
+    
+    class Phrase {
+        - phrase: String
+        - translation: String
+        
+        + Phrase(phrase: String, translation: String)
+        + getPhrase(): String
+        + getTranslation(): String
+    }
+    
+    class UserWord {
+        - lemma: String
+        - label: String
+        - date: String
+        
+        + UserWord(lemma: String, label: String)
+        + getLemma(): String
+        + getLabel(): String
+        + getDate(): String
+        + setDate(date: String): void
+    }
+    
+    class VocabularyStats {
+        - totalWords: int
+        - uniqueWords: int
+        - levelDistribution: Map<String, Integer>
+        - labelCounts: Map<String, Integer>
+        
+        + VocabularyStats()
+        + getTotalWords(): int
+        + getUniqueWords(): int
+        + getLevelDistribution(): Map<String, Integer>
+        + getLabelCounts(): Map<String, Integer>
+        + setTotalWords(count: int): void
+        + setUniqueWords(count: int): void
+        + addLevelCount(level: String, count: int): void
+        + addLabelCount(label: String, count: int): void
+    }
+    
+    class WordAnalysis {
+        - lemmas: List<String>
+        - positions: Map<Integer, String>
+        - frequencies: Map<String, Integer>
+        
+        + WordAnalysis()
+        + getLemmas(): List<String>
+        + getPositions(): Map<Integer, String>
+        + getFrequencies(): Map<String, Integer>
+    }
+}
+
+package "DataSource Layer" {
+    
+    interface IArticleDao {
+        + insert(title: String, content: String, filePath: String, totalWords: int, uniqueWords: int): int
+        + delete(articleId: int): void
+        + findById(articleId: int): Map<String, Object>
+        + findAll(): List<Map<String, Object>>
+    }
+    
+    interface IDictionaryDao {
+        + loadFromJSON(jsonPath: String, level: String): void
+        + findByWord(word: String): Map<String, Object>
+        + isLevelLoaded(level: String): boolean
+    }
+    
+    interface IUserWordDao {
+        + insert(lemma: String, label: String): void
+        + update(lemma: String, label: String): void
+        + findByLabel(label: String): List<Map<String, Object>>
+        + findByLemma(lemma: String): Map<String, Object>
+        + findAll(): List<Map<String, Object>>
+    }
+    
+    interface IProgressDao {
+        + save(articleId: int, position: int): void
+        + findByArticleId(articleId: int): int
+    }
+    
+    interface IDatabase {
+        + getConnection(): Connection
+        + execute(sql: String): void
+        + query(sql: String): ResultSet
+    }
+    
+    class ArticleDao {
+        - database: IDatabase
+        
+        + ArticleDao(database: IDatabase)
+        + insert(title: String, content: String, filePath: String, totalWords: int, uniqueWords: int): int
+        + delete(articleId: int): void
+        + findById(articleId: int): Map<String, Object>
+        + findAll(): List<Map<String, Object>>
+    }
+    
+    class DictionaryDao {
+        - database: IDatabase
+        - jsonParser: JSONParser
+        
+        + DictionaryDao(database: IDatabase, jsonParser: JSONParser)
+        + loadFromJSON(jsonPath: String, level: String): void
+        + findByWord(word: String): Map<String, Object>
+        + isLevelLoaded(level: String): boolean
+    }
+    
+    class UserWordDao {
+        - database: IDatabase
+        
+        + UserWordDao(database: IDatabase)
+        + insert(lemma: String, label: String): void
+        + update(lemma: String, label: String): void
+        + findByLabel(label: String): List<Map<String, Object>>
+        + findByLemma(lemma: String): Map<String, Object>
+        + findAll(): List<Map<String, Object>>
+    }
+    
+    class ProgressDao {
+        - database: IDatabase
+        
+        + ProgressDao(database: IDatabase)
+        + save(articleId: int, position: int): void
+        + findByArticleId(articleId: int): int
+    }
+    
+    class SQLiteDatabase {
+        - connection: Connection
+        - {static} instance: SQLiteDatabase
+        
+        - SQLiteDatabase()
+        + getInstance(): SQLiteDatabase {static}
+        + getConnection(): Connection
+        + execute(sql: String): void
+        + query(sql: String): ResultSet
+        + initTables(): void
+    }
+    
+    class JSONParser {
+        - gson: Gson
+        
+        + JSONParser()
+        + parseFile(filePath: String): Map<String, Object>
+        + parseArray(json: String): List<Map<String, Object>>
+    }
+}
+
+package "External" {
+    class JFrame <<external>>
+    class Connection <<external>>
+    class ResultSet <<external>>
+    class StanfordCoreNLP <<external>>
+    class Gson <<external>>
+}
+
+MainView ..|> IMainView
+ReadingView ..|> IReadingView
+ReportView ..|> IReportView
+
+MainView --|> JFrame
+ReadingView --|> JFrame
+ReportView --|> JFrame
+
+MainView --> MainPresenter
+ReadingView --> ReadingPresenter
+ReportView --> ReportPresenter
+
+MainPresenter --> IMainView
+MainPresenter --> ArticleManager
+MainPresenter --> Article
+
+ReadingPresenter --> IReadingView
+ReadingPresenter --> ArticleManager
+ReadingPresenter --> VocabularyManager
+ReadingPresenter --> ProgressTracker
+ReadingPresenter --> WordDefinition
+
+ReportPresenter --> IReportView
+ReportPresenter --> VocabularyManager
+ReportPresenter --> CSVExporter
+ReportPresenter --> VocabularyStats
+
+ArticleManager --> IArticleDao
+ArticleManager --> NLPProcessor
+ArticleManager --> Article
+
+VocabularyManager --> IDictionaryDao
+VocabularyManager --> IUserWordDao
+VocabularyManager --> NLPProcessor
+VocabularyManager --> WordDefinition
+VocabularyManager --> UserWord
+VocabularyManager --> VocabularyStats
+
+ProgressTracker --> IProgressDao
+
+CSVExporter --> IUserWordDao
+
+NLPProcessor ..> StanfordCoreNLP
+
+WordDefinition --> Translation
+WordDefinition --> Phrase
+
+ArticleDao ..|> IArticleDao
+DictionaryDao ..|> IDictionaryDao
+UserWordDao ..|> IUserWordDao
+ProgressDao ..|> IProgressDao
+SQLiteDatabase ..|> IDatabase
+
+ArticleDao --> IDatabase
+DictionaryDao --> IDatabase
+DictionaryDao --> JSONParser
+UserWordDao --> IDatabase
+ProgressDao --> IDatabase
+
+JSONParser ..> Gson
+SQLiteDatabase ..> Connection
+
+@enduml

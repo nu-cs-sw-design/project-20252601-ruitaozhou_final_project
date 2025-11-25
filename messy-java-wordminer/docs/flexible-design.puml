@@ -1,0 +1,455 @@
+@startuml Flexible WordMiner Design - 3-Layer Architecture
+
+title WordMiner - Flexible 3-Layer Architecture with SOLID Principles
+
+package "Presentation Layer" {
+    
+    interface IView {
+        + show(): void
+        + hide(): void
+        + showError(message: String): void
+    }
+    
+    interface IMainView {
+        + displayArticles(articles: List<Article>): void
+        + getSelectedArticle(): Article
+        + setPresenter(presenter: IMainPresenter): void
+    }
+    
+    interface IReadingView {
+        + displayArticle(article: Article, highlights: Map<String, String>): void
+        + setPresenter(presenter: IReadingPresenter): void
+    }
+    
+    interface IReportView {
+        + displayReport(report: VocabularyReport): void
+        + setPresenter(presenter: IReportPresenter): void
+    }
+    
+    interface IMainPresenter {
+        + onImportArticle(): void
+        + onDeleteArticle(): void
+        + onReadArticle(): void
+        + onShowReport(): void
+        + onViewLabeledWords(): void
+    }
+    
+    interface IReadingPresenter {
+        + onWordClicked(word: String): void
+        + onLabelWord(word: String, label: WordLabel): void
+        + onSaveProgress(position: int): void
+    }
+    
+    interface IReportPresenter {
+        + onExportCSV(): void
+    }
+    
+    class MainView {
+        - presenter: IMainPresenter
+        - articleTable: JTable
+        - tableModel: DefaultTableModel
+        
+        + MainView()
+        + displayArticles(articles: List<Article>): void
+        + getSelectedArticle(): Article
+        + setPresenter(presenter: IMainPresenter): void
+        + show(): void
+        + hide(): void
+        + showError(message: String): void
+    }
+    
+    class ReadingView {
+        - presenter: IReadingPresenter
+        - textPane: JTextPane
+        - scrollPane: JScrollPane
+        
+        + ReadingView()
+        + displayArticle(article: Article, highlights: Map<String, String>): void
+        + setPresenter(presenter: IReadingPresenter): void
+        + show(): void
+        + hide(): void
+        + showError(message: String): void
+    }
+    
+    class ReportView {
+        - presenter: IReportPresenter
+        - statsPanel: JPanel
+        
+        + ReportView()
+        + displayReport(report: VocabularyReport): void
+        + setPresenter(presenter: IReportPresenter): void
+        + show(): void
+        + hide(): void
+        + showError(message: String): void
+    }
+    
+    class MainPresenter {
+        - view: IMainView
+        - articleService: IArticleService
+        - navigationService: INavigationService
+        
+        + MainPresenter(view: IMainView, articleService: IArticleService, navigationService: INavigationService)
+        + onImportArticle(): void
+        + onDeleteArticle(): void
+        + onReadArticle(): void
+        + onShowReport(): void
+        + onViewLabeledWords(): void
+        - loadArticles(): void
+    }
+    
+    class ReadingPresenter {
+        - view: IReadingView
+        - articleService: IArticleService
+        - vocabularyService: IVocabularyService
+        - progressService: IProgressService
+        
+        + ReadingPresenter(view: IReadingView, articleService: IArticleService, vocabularyService: IVocabularyService, progressService: IProgressService)
+        + onWordClicked(word: String): void
+        + onLabelWord(word: String, label: WordLabel): void
+        + onSaveProgress(position: int): void
+    }
+    
+    class ReportPresenter {
+        - view: IReportView
+        - vocabularyService: IVocabularyService
+        - exportService: IExportService
+        
+        + ReportPresenter(view: IReportView, vocabularyService: IVocabularyService, exportService: IExportService)
+        + onExportCSV(): void
+    }
+}
+
+package "Business Layer" {
+    
+    interface IArticleService {
+        + importArticle(filePath: String): Article
+        + deleteArticle(articleId: int): void
+        + getArticle(articleId: int): Article
+        + getAllArticles(): List<Article>
+    }
+    
+    interface IVocabularyService {
+        + analyzeArticle(article: Article): VocabularyReport
+        + getWordDefinition(word: String): WordDefinition
+        + labelWord(word: String, label: WordLabel): void
+        + getLabeledWords(label: WordLabel): List<UserWord>
+        + getWordHighlights(article: Article): Map<String, String>
+    }
+    
+    interface IProgressService {
+        + saveProgress(articleId: int, position: int): void
+        + getProgress(articleId: int): int
+    }
+    
+    interface IExportService {
+        + exportToCSV(words: List<UserWord>, filePath: String): void
+    }
+    
+    interface INavigationService {
+        + navigateToReading(article: Article): void
+        + navigateToReport(article: Article): void
+        + navigateToMain(): void
+    }
+    
+    interface INLPProcessor {
+        + tokenize(text: String): List<String>
+        + lemmatize(tokens: List<String>): List<String>
+        + removeStopWords(tokens: List<String>): List<String>
+    }
+    
+    interface IDictionaryManager {
+        + loadDictionaries(): void
+        + getWordLevel(word: String): String
+        + getWordDefinition(word: String): WordDefinition
+    }
+    
+    class ArticleService {
+        - articleRepository: IArticleRepository
+        - nlpProcessor: INLPProcessor
+        
+        + ArticleService(articleRepository: IArticleRepository, nlpProcessor: INLPProcessor)
+        + importArticle(filePath: String): Article
+        + deleteArticle(articleId: int): void
+        + getArticle(articleId: int): Article
+        + getAllArticles(): List<Article>
+        - analyzeText(text: String): ArticleStats
+    }
+    
+    class VocabularyService {
+        - userWordRepository: IUserWordRepository
+        - dictionaryManager: IDictionaryManager
+        - nlpProcessor: INLPProcessor
+        
+        + VocabularyService(userWordRepository: IUserWordRepository, dictionaryManager: IDictionaryManager, nlpProcessor: INLPProcessor)
+        + analyzeArticle(article: Article): VocabularyReport
+        + getWordDefinition(word: String): WordDefinition
+        + labelWord(word: String, label: WordLabel): void
+        + getLabeledWords(label: WordLabel): List<UserWord>
+        + getWordHighlights(article: Article): Map<String, String>
+    }
+    
+    class ProgressService {
+        - progressRepository: IProgressRepository
+        
+        + ProgressService(progressRepository: IProgressRepository)
+        + saveProgress(articleId: int, position: int): void
+        + getProgress(articleId: int): int
+    }
+    
+    class ExportService {
+        + ExportService()
+        + exportToCSV(words: List<UserWord>, filePath: String): void
+    }
+    
+    class NavigationService {
+        - mainView: IMainView
+        - readingViewFactory: ViewFactory
+        - reportViewFactory: ViewFactory
+        
+        + NavigationService(mainView: IMainView)
+        + navigateToReading(article: Article): void
+        + navigateToReport(article: Article): void
+        + navigateToMain(): void
+    }
+    
+    class StanfordNLPProcessor {
+        - pipeline: StanfordCoreNLP
+        
+        + StanfordNLPProcessor()
+        + tokenize(text: String): List<String>
+        + lemmatize(tokens: List<String>): List<String>
+        + removeStopWords(tokens: List<String>): List<String>
+    }
+    
+    class DictionaryManager {
+        - dictionaryRepository: IDictionaryRepository
+        - cache: Map<String, WordDefinition>
+        
+        + DictionaryManager(dictionaryRepository: IDictionaryRepository)
+        + loadDictionaries(): void
+        + getWordLevel(word: String): String
+        + getWordDefinition(word: String): WordDefinition
+    }
+    
+    class Article {
+        - id: int
+        - title: String
+        - content: String
+        - filePath: String
+        - totalWords: int
+        - uniqueWords: int
+        - importDate: LocalDateTime
+        
+        + Article(title: String, content: String, filePath: String)
+        + getId(): int
+        + getTitle(): String
+        + getContent(): String
+        + getTotalWords(): int
+        + getUniqueWords(): int
+    }
+    
+    class VocabularyReport {
+        - totalWords: int
+        - uniqueWords: int
+        - levelDistribution: Map<String, Integer>
+        - labelCounts: Map<WordLabel, Integer>
+        
+        + VocabularyReport()
+        + getTotalWords(): int
+        + getUniqueWords(): int
+        + getLevelDistribution(): Map<String, Integer>
+        + getLabelCounts(): Map<WordLabel, Integer>
+    }
+    
+    class WordDefinition {
+        - word: String
+        - level: String
+        - translations: List<Translation>
+        - phrases: List<Phrase>
+        
+        + WordDefinition(word: String, level: String)
+        + getWord(): String
+        + getLevel(): String
+        + getTranslations(): List<Translation>
+        + getPhrases(): List<Phrase>
+    }
+    
+    class UserWord {
+        - lemma: String
+        - label: WordLabel
+        - date: LocalDateTime
+        
+        + UserWord(lemma: String, label: WordLabel)
+        + getLemma(): String
+        + getLabel(): WordLabel
+        + getDate(): LocalDateTime
+    }
+    
+    enum WordLabel {
+        KNOWN
+        UNKNOWN
+        UNCERTAIN
+        UNLABELED
+    }
+}
+
+package "Data Access Layer" {
+    
+    interface IArticleRepository {
+        + save(article: Article): int
+        + delete(articleId: int): void
+        + findById(articleId: int): Article
+        + findAll(): List<Article>
+    }
+    
+    interface IDictionaryRepository {
+        + loadDictionaries(jsonPaths: List<String>): void
+        + findByWord(word: String): WordDefinition
+        + isDictionaryLoaded(level: String): boolean
+    }
+    
+    interface IUserWordRepository {
+        + save(userWord: UserWord): void
+        + findByLabel(label: WordLabel): List<UserWord>
+        + findByLemma(lemma: String): UserWord
+        + findAll(): List<UserWord>
+    }
+    
+    interface IProgressRepository {
+        + save(articleId: int, position: int): void
+        + findByArticleId(articleId: int): int
+    }
+    
+    interface IDatabase {
+        + getConnection(): Connection
+        + close(): void
+    }
+    
+    class ArticleRepository {
+        - database: IDatabase
+        
+        + ArticleRepository(database: IDatabase)
+        + save(article: Article): int
+        + delete(articleId: int): void
+        + findById(articleId: int): Article
+        + findAll(): List<Article>
+    }
+    
+    class DictionaryRepository {
+        - database: IDatabase
+        - gson: Gson
+        
+        + DictionaryRepository(database: IDatabase)
+        + loadDictionaries(jsonPaths: List<String>): void
+        + findByWord(word: String): WordDefinition
+        + isDictionaryLoaded(level: String): boolean
+    }
+    
+    class UserWordRepository {
+        - database: IDatabase
+        
+        + UserWordRepository(database: IDatabase)
+        + save(userWord: UserWord): void
+        + findByLabel(label: WordLabel): List<UserWord>
+        + findByLemma(lemma: String): UserWord
+        + findAll(): List<UserWord>
+    }
+    
+    class ProgressRepository {
+        - database: IDatabase
+        
+        + ProgressRepository(database: IDatabase)
+        + save(articleId: int, position: int): void
+        + findByArticleId(articleId: int): int
+    }
+    
+    class SQLiteDatabase {
+        - connection: Connection
+        - {static} instance: SQLiteDatabase
+        
+        - SQLiteDatabase()
+        + {static} getInstance(): SQLiteDatabase
+        + getConnection(): Connection
+        + close(): void
+        - initializeTables(): void
+    }
+}
+
+package "External" {
+    class JFrame <<external>>
+    class Connection <<external>>
+    class StanfordCoreNLP <<external>>
+    class Gson <<external>>
+}
+
+IMainView --|> IView
+IReadingView --|> IView
+IReportView --|> IView
+
+MainView ..|> IMainView
+ReadingView ..|> IReadingView
+ReportView ..|> IReportView
+
+MainView --|> JFrame
+ReadingView --|> JFrame
+ReportView --|> JFrame
+
+MainPresenter ..|> IMainPresenter
+ReadingPresenter ..|> IReadingPresenter
+ReportPresenter ..|> IReportPresenter
+
+MainPresenter --> IMainView
+MainPresenter --> IArticleService
+MainPresenter --> INavigationService
+
+ReadingPresenter --> IReadingView
+ReadingPresenter --> IArticleService
+ReadingPresenter --> IVocabularyService
+ReadingPresenter --> IProgressService
+
+ReportPresenter --> IReportView
+ReportPresenter --> IVocabularyService
+ReportPresenter --> IExportService
+
+ArticleService ..|> IArticleService
+VocabularyService ..|> IVocabularyService
+ProgressService ..|> IProgressService
+ExportService ..|> IExportService
+NavigationService ..|> INavigationService
+StanfordNLPProcessor ..|> INLPProcessor
+DictionaryManager ..|> IDictionaryManager
+
+ArticleService --> IArticleRepository
+ArticleService --> INLPProcessor
+ArticleService --> Article
+
+VocabularyService --> IUserWordRepository
+VocabularyService --> IDictionaryManager
+VocabularyService --> INLPProcessor
+VocabularyService --> UserWord
+VocabularyService --> VocabularyReport
+VocabularyService --> WordDefinition
+
+ProgressService --> IProgressRepository
+
+NavigationService --> IMainView
+
+DictionaryManager --> IDictionaryRepository
+DictionaryManager --> WordDefinition
+
+ArticleRepository ..|> IArticleRepository
+DictionaryRepository ..|> IDictionaryRepository
+UserWordRepository ..|> IUserWordRepository
+ProgressRepository ..|> IProgressRepository
+SQLiteDatabase ..|> IDatabase
+
+ArticleRepository --> IDatabase
+DictionaryRepository --> IDatabase
+UserWordRepository --> IDatabase
+ProgressRepository --> IDatabase
+
+DictionaryRepository ..> Gson
+StanfordNLPProcessor ..> StanfordCoreNLP
+SQLiteDatabase ..> Connection
+
+@enduml
