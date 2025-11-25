@@ -11,10 +11,15 @@ Ruitao Zhou
 
 ## Build Instructions
 ```
-cd /java-wordminer
+cd /messy-java-wordminer
 mvn compile
 mvn exec:java
 ```
+---
+2025-11-24
+1. messy-java-wordminer (messy but functional implementation of WordMiner)
+2. docs/design/requirements.md (software requirement document, modifed use cases, features, purpose statement; now the document is more clear in detail)
+3. docs/design/design.puml (functional and flexible design, may be modified in the future)
 
 ---
 2025-11-13   
