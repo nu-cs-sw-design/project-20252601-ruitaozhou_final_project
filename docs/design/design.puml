@@ -1,412 +1,565 @@
-@startuml Flexible WordMiner Design - Strict 3-Layer with No Reverse Dependencies
+@startuml WordMiner-v2-Complete-Architecture
 
-title WordMiner - Strict 3-Layer Architecture (No Reverse Dependencies)
+' class App {
+'     - articleService: ArticleService
+'     - vocabularyService: VocabularyService
+'     - mainWindow: MainWindow
 
-package "Presentation Layer" {
+'     __
+'     + App()
+'     + run(): void
+'     - initializeServices(): void
+'     - initializePresentation(): void
+' }
+
+package presentation {
     
-    interface IMainView {
-        + displayArticles(articles: List<Article>): void
-        + getSelectedArticleId(): int
-        + showError(message: String): void
-        + show(): void
+    ' Main Window
+    class MainWindow {
+        - articleService: ArticleService
+        - viewFactory: ViewFactory
+
+        __
+        + MainWindow(articleService: ArticleService, viewFactory: ViewFactory): void
+        + display(): void
+        - freshArticleList(): voidre
+        - initializeUI(): void
+        - onImportArticle(): void
+        - onDeleteArticle(): void
+        - onReadArticle(): void
+        - onOpenArticleReport(): void
+        - onOpenVocabulary(): void
     }
     
-    interface IReadingView {
-        + displayContent(content: String, highlights: Map<Integer, String>): void
-        + showWordPopup(definition: WordDefinition): void
-        + showError(message: String): void
-        + show(): void
+    ' Article Reader View
+    class ArticleReaderView {
+        - articleId: int
+        - articleService: ArticleService
+        - vocabularyService: VocabularyService
+
+        __
+        + ArticleReaderView(articleId, articleService, vocabularyService)
+        + display()
+        - initializeUI()
+        - loadArticle()
+        - displayArticleContent()
+        - highlightWords(content: String)
+        - onTextClicked(e: MouseEvent)
+        - getWordAtPosition(pos: int): String
+        - refreshDisplay()
     }
     
-    interface IReportView {
-        + displayStatistics(stats: VocabularyStats): void
-        + showError(message: String): void
-        + show(): void
+    
+    ' Article Report View
+    class ArticleReportView {
+        - articleId: int
+        - vocabularyService: VocabularyService
+        - articleService: ArticleService
+        __
+        + ArticleReportView(articleId, vocabularyService, articleService)
+        + display()
+        - initializeUI()
     }
     
-    class MainView {
-        - presenter: MainPresenter
-        - articleTable: JTable
-        
-        + MainView(presenter: MainPresenter)
-        + displayArticles(articles: List<Article>): void
-        + getSelectedArticleId(): int
-        + showError(message: String): void
-        + show(): void
+    ' Vocabulary View
+    class LabeledWordsView {
+        - vocabularyService: VocabularyService
+        __
+        + LabeledWordsView(vocabularyService)
+        + display()
+        - initializeUI()
+        - refreshWordList()
+        - updateStats()
     }
     
-    class ReadingView {
-        - presenter: ReadingPresenter
-        - textPane: JTextPane
-        
-        + ReadingView(presenter: ReadingPresenter)
-        + displayContent(content: String, highlights: Map<Integer, String>): void
-        + showWordPopup(definition: WordDefinition): void
-        + showError(message: String): void
-        + show(): void
+    ' View Factory
+    class ViewFactory {
+        - articleService: ArticleService
+        - vocabularyService: VocabularyService
+        __
+        + ViewFactory(articleService: ArticleService, vocabularyService: VocabularyService)
+        + createArticleReportView(articleId: int): ArticleReportView
+        + createArticleReaderView(articleId: int): ArticleReaderView
+        + createLabeledWordsView(): LabeledWordsView
     }
-    
-    class ReportView {
-        - presenter: ReportPresenter
-        - statsPanel: JPanel
-        
-        + ReportView(presenter: ReportPresenter)
-        + displayStatistics(stats: VocabularyStats): void
-        + showError(message: String): void
-        + show(): void
-    }
-    
-    class MainPresenter {
-        - view: IMainView
-        - articleManager: ArticleManager
-        
-        + MainPresenter(articleManager: ArticleManager)
-        + setView(view: IMainView): void
-        + onImportArticle(filePath: String): void
-        + onDeleteArticle(): void
-        + onOpenReading(): void
-        + onShowReport(): void
-        + refreshArticleList(): void
-    }
-    
-    class ReadingPresenter {
-        - view: IReadingView
-        - articleManager: ArticleManager
-        - vocabularyManager: VocabularyManager
-        - progressTracker: ProgressTracker
-        
-        + ReadingPresenter(articleManager: ArticleManager, vocabularyManager: VocabularyManager, progressTracker: ProgressTracker)
-        + setView(view: IReadingView): void
-        + loadArticle(articleId: int): void
-        + onWordClick(position: int): void
-        + onLabelWord(lemma: String, label: String): void
-        + onScrollChange(position: int): void
-    }
-    
-    class ReportPresenter {
-        - view: IReportView
-        - vocabularyManager: VocabularyManager
-        - exporter: CSVExporter
-        
-        + ReportPresenter(vocabularyManager: VocabularyManager, exporter: CSVExporter)
-        + setView(view: IReportView): void
-        + loadReport(articleId: int): void
-        + onExportCSV(): void
-    }
+
 }
 
-package "Domain Layer" {
-    
-    class ArticleManager {
-        - articleDao: IArticleDao
-        - nlpProcessor: NLPProcessor
-        
-        + ArticleManager(articleDao: IArticleDao, nlpProcessor: NLPProcessor)
-        + importArticle(filePath: String): int
-        + deleteArticle(articleId: int): void
-        + getArticle(articleId: int): Article
-        + getAllArticles(): List<Article>
-        - readFile(filePath: String): String
-        - buildArticle(data: Map<String, Object>): Article
-    }
-    
-    class VocabularyManager {
-        - dictionaryDao: IDictionaryDao
-        - userWordDao: IUserWordDao
-        - nlpProcessor: NLPProcessor
-        
-        + VocabularyManager(dictionaryDao: IDictionaryDao, userWordDao: IUserWordDao, nlpProcessor: NLPProcessor)
-        + analyzeArticle(content: String): VocabularyStats
-        + getWordDefinition(lemma: String): WordDefinition
-        + labelWord(lemma: String, label: String): void
-        + getLabeledWords(label: String): List<UserWord>
-        + getHighlights(content: String): Map<Integer, String>
-        - buildDefinition(data: Map<String, Object>): WordDefinition
-        - buildUserWord(data: Map<String, Object>): UserWord
-    }
-    
-    class ProgressTracker {
-        - progressDao: IProgressDao
-        
-        + ProgressTracker(progressDao: IProgressDao)
-        + saveProgress(articleId: int, position: int): void
-        + getProgress(articleId: int): int
-    }
-    
-    class CSVExporter {
-        - userWordDao: IUserWordDao
-        
-        + CSVExporter(userWordDao: IUserWordDao)
-        + exportByLabel(label: String, filePath: String): void
-        + exportAll(outputDir: String): void
-    }
-    
-    class NLPProcessor {
-        - pipeline: StanfordCoreNLP
-        
-        + NLPProcessor()
-        + tokenize(text: String): List<String>
-        + lemmatize(text: String): List<String>
-        + analyzeWords(text: String): WordAnalysis
-    }
-    
+package domain {
+
+    ' Entities
     class Article {
         - id: int
         - title: String
         - content: String
         - filePath: String
+        - importDate: LocalDateTime
+        - spec: ArticleSpec
+        __
+        ~ Article(id, title, content, filePath, importDate)
+        ~ countWords(): int
+        ~ countUniqueWords(): int
+        ~ getWords(): List<String>
+        ~ getUniqueWords(): Set<String>
+        ~ getters()
+    }
+
+    class ArticleSpec {
         - totalWords: int
         - uniqueWords: int
-        - importDate: String
-        
-        + Article(id: int, title: String, content: String)
-        + getId(): int
-        + getTitle(): String
-        + getContent(): String
-        + getTotalWords(): int
-        + getUniqueWords(): int
-        + getImportDate(): String
-        + setId(id: int): void
-        + setTotalWords(count: int): void
-        + setUniqueWords(count: int): void
+        - knownWords: int
+        - unknownWords: int
+        - wordLevelDistribution: Map<String, Integer>
+        __
+        + ArticleVocabularyAnalysis(totalWords, uniqueWords, knownWords, unknownWords, wordLevelDistribution)
+        + getKnownPercentage(): double
+        + getters()
     }
     
-    class WordDefinition {
-        - lemma: String
-        - level: String
-        - translations: List<Translation>
-        - phrases: List<Phrase>
-        
-        + WordDefinition(lemma: String, level: String)
-        + getLemma(): String
-        + getLevel(): String
-        + getTranslations(): List<Translation>
-        + getPhrases(): List<Phrase>
-        + addTranslation(translation: Translation): void
-        + addPhrase(phrase: Phrase): void
+    class Word {
+        - word: String
+        - levels: List<String>
+        __
+        ~ Word(word, levels)
+        ~ hasLevel(level: String): boolean
+        ~ getHighestLevel(): String
+        ~ getters()
     }
     
-    class Translation {
-        - text: String
-        - type: String
-        
-        + Translation(text: String, type: String)
-        + getText(): String
-        + getType(): String
+    class UserWordStatus {
+        - word: String
+        - status: WordStatusEnum
+        - markedDate: LocalDateTime
+        __
+        ~ UserWordStatus(word, status, markedDate)
+        ~ updateStatsus(status: WordStatusEnum): boolean
+        ~ isMastered(): boolean
+        ~ getters()
     }
     
-    class Phrase {
-        - phrase: String
-        - translation: String
-        
-        + Phrase(phrase: String, translation: String)
-        + getPhrase(): String
-        + getTranslation(): String
+    enum WordStatusEnum {
+        MASTERED
+        NOT_MASTERED
     }
     
-    class UserWord {
-        - lemma: String
-        - label: String
-        - date: String
-        
-        + UserWord(lemma: String, label: String)
-        + getLemma(): String
-        + getLabel(): String
-        + getDate(): String
-        + setDate(date: String): void
+    ' Value Objects
+    class WordInfo {
+        - word: String
+        - levels: List<String>
+        - isInSystemDict: boolean
+        - userStatus: WordStatusEnum
+        __
+        + WordInfo(word, levels, isInSystemDict, userStatus)
+        + getUserStatus(): WordStatusEnum
+        + isMarkedByUser(): boolean
+        + isMastered(): boolean
+        + isInSystemDict(): boolean
+        + getLevels(): List<String>
     }
     
-    class VocabularyStats {
-        - totalWords: int
-        - uniqueWords: int
-        - levelDistribution: Map<String, Integer>
-        - labelCounts: Map<String, Integer>
-        
-        + VocabularyStats()
-        + getTotalWords(): int
-        + getUniqueWords(): int
-        + getLevelDistribution(): Map<String, Integer>
-        + getLabelCounts(): Map<String, Integer>
-        + setTotalWords(count: int): void
-        + setUniqueWords(count: int): void
-        + addLevelCount(level: String, count: int): void
-        + addLabelCount(label: String, count: int): void
+    ' class VocabularyStats {
+    '     - totalSystemWords: int
+    '     - totalUserMarkedWords: int
+    '     - masteredWords: int
+    '     - notMasteredWords: int
+    '     __
+    '     + VocabularyStats(totalSystemWords, totalUserMarkedWords, masteredWords, notMasteredWords)
+    '     + getters()
+    ' }
+    
+    
+    ' Repositories
+    class ArticleRepository {
+        - articles: Map<int, Article>
+        - dbLoader: DBLoader
+        - dbSaver: DBSaver
+        - fileLoader: FileLoader
+        - mapper: ArticleDataMapper
+        __
+        ~ ArticleRepository(dbLoader, dbSaver, fileLoader, mapper)
+        ~ getAllArticles(): List<Article>
+        ~ findById(id: int): Article
+        ~ importArticle(filePath: Path): boolean
+        ~ delete(id: int): boolean
+        ~ count(): int
     }
     
-    class WordAnalysis {
-        - lemmas: List<String>
-        - positions: Map<Integer, String>
-        - frequencies: Map<String, Integer>
-        
-        + WordAnalysis()
-        + getLemmas(): List<String>
-        + getPositions(): Map<Integer, String>
-        + getFrequencies(): Map<String, Integer>
+    class DictionaryRepository {
+        - dbLoader: DBLoader
+        - mapper: WordDataMapper
+        - wordCache: Map<String, Word>
+        __
+        ~ DictionaryRepository(dbLoader, mapper)
+        ~ findWord(word: String): Word
+        ~ count(): int
+        - loadAllWords()
     }
+    
+    class UserWordRepository {
+        - dbLoader: DBLoader
+        - dbSaver: DBSaver
+        - mapper: Mapper
+        - userWordCache: Map<String, UserWordStatus>
+        __
+        ~ UserWordRepository(dbLoader, dbSaver, mapper)
+        ~ getUserWordStatus(word: String): UserWordStatus
+        ~ updateWordStatus(word: String, status: WordStatusEnum): boolean
+        ~ getAllUserWords(): List<UserWordStatus>
+        ~ getAllMasteredWords(): List<UserWordStatus>
+        ~ getAllNotMasteredWords(): List<UserWordStatus>
+        ~ count(): int
+        - loadAllUserWords()
+    }
+    
+    ' Services
+    class VocabularyService {
+        - dictionaryRepo: DictionaryRepository
+        - userWordRepo: UserWordRepository
+        __
+        + VocabularyService(dictionaryRepo, userWordRepo)
+        + getWordInfo(word: String): WordInfo
+        + markWord(word: String, status: WordStatusEnum): boolean
+        + getVocabularyStats(): VocabularyStats
+        + getAllUserWords(): List<UserWordStatus>
+        + getMasteredWords(): List<UserWordStatus>
+        + getNotMasteredWords(): List<UserWordStatus>
+        - extractWords(text: String): Set<String>
+    }
+
+    class ArticleService {
+        - articleRepo: ArticleRepository
+        - dictionaryRepo: DictionaryRepository
+        - userWordRepo: UserWordRepository
+        __
+        + ArticleService(articleRepo)
+        + getAllArticles(): List<Article>
+        + getArticleById(id: int): Article
+        + importArticle(filePath: Path): boolean
+        + deleteArticle(id: int): boolean
+        + getArticleSpec(id: int): String
+        + getArticleReport(id: int): String
+        + countArticles(): int
+    }
+    
+    ' class ArticleManager {
+    '     - repository: ArticleRepository
+    '     __
+    '     + ArticleManager(repository)
+    '     + getRepository(): ArticleRepository
+    ' }
+    
+    ' Mappers
+    interface Mapper {
+        + toEntity(dto): Object
+        + toDTO(entity): Object
+    }
+     
+    class ArticleDataMapper {
+        + toEntity(dto: DBArticleDTO): Article
+        + toDTO(entity: Article): DBArticleDTO
+    }
+    
+    class WordDataMapper {
+        + toEntity(dto: DBWordDTO): Word
+    }
+    
+    class UserWordStatusMapper {
+        + toEntity(dto: DBUserWordStatusDTO): UserWordStatus
+        + toDTO(entity: UserWordStatus): DBUserWordStatusDTO
+    }
+
+    Article --> ArticleSpec
+    
+    ArticleService --> ArticleRepository
+    ArticleService --> DictionaryRepository
+    ArticleService --> UserWordRepository
+
+    VocabularyService --> DictionaryRepository
+    VocabularyService --> UserWordRepository
+    VocabularyService ..> WordInfo
+    
+
+    ArticleRepository -->"*" Article
+    ArticleRepository --> Mapper
+
+    DictionaryRepository --> Mapper
+    DictionaryRepository -->"*" Word
+
+    ArticleDataMapper ..|> Mapper
+    WordDataMapper ..|> Mapper
+    UserWordStatusMapper ..|> Mapper
+
+    UserWordRepository -->"*" UserWordStatus
+    UserWordRepository --> Mapper
+
+    UserWordStatus --> WordStatusEnum
+
 }
 
-package "DataSource Layer" {
+package datasource {
     
-    interface IArticleDao {
-        + insert(title: String, content: String, filePath: String, totalWords: int, uniqueWords: int): int
-        + delete(articleId: int): void
-        + findById(articleId: int): Map<String, Object>
-        + findAll(): List<Map<String, Object>>
+    ' DTOs
+    class ArticleDTO {
+        + id: int
+        + title: String
+        + content: String
+        + filePath: String
+        + importDate: String
+        + totalWords: int
+        + uniqueWords: int
+        + knownWords: int
+        + unknownWords: int
+        + wordLevelDistribution: String
+        __
+        + ArticleDTO(id, title, content, filePath, importDate)
+        + getters/setters()
     }
     
-    interface IDictionaryDao {
-        + loadFromJSON(jsonPath: String, level: String): void
-        + findByWord(word: String): Map<String, Object>
-        + isLevelLoaded(level: String): boolean
+    class WordDTO {
+        + word: String
+        + levels: String
+        __
+        + WordDTO(word, levels)
+        + getters/setters()
     }
     
-    interface IUserWordDao {
-        + insert(lemma: String, label: String): void
-        + update(lemma: String, label: String): void
-        + findByLabel(label: String): List<Map<String, Object>>
-        + findByLemma(lemma: String): Map<String, Object>
-        + findAll(): List<Map<String, Object>>
+    class UserWordStatusDTO {
+        + word: String
+        + status: String
+        + markedDate: String
+        __
+        + UserWordStatusDTO(word, status, markedDate)
+        + getters/setters()
     }
     
-    interface IProgressDao {
-        + save(articleId: int, position: int): void
-        + findByArticleId(articleId: int): int
+
+    ' Interfaces
+    interface DBLoader {
+        + hasNext(): boolean
+        + next(): Object
     }
     
-    interface IDatabase {
-        + getConnection(): Connection
-        + execute(sql: String): void
-        + query(sql: String): ResultSet
+    interface DBSaver {
+        + save(dto: Object): boolean
     }
+
+    interface FileLoader {
+        + loadFromFile(filePath: Path): Object
+    }
+
+    ' Implementations
+    class DBArticleLoader {
+        + hasNext(): boolean
+        + next(): DBArticleDTO
+    }
+
+    class DBArticleSaver {
+        + save(dto: DBArticleDTO): boolean
+    }
+
+    class DBDictionaryLoader {
+        + hasNext(): boolean
+        + next(): DBWordDTO
+    }
+
+
+    class DBUserWordLoader {
+        + hasNext(): boolean
+        + next(): DBUserWordStatusDTO
+    }
+
+    class DBUserWordSaver {
+        + save(dto: DBUserWordStatusDTO): boolean
+    }
+
+    class FileArticleLoader {
+        + loadFromFile(filePath: Path): DBArticleDTO
+    }
+
+    class FileDictionaryLoader {
+        + loadDictionaryFromFiles(directoryPath: String): List<DBWordDTO>
+    }
+
+
+    ' class SQLiteDataSource {
+    '     - {static} instance: SQLiteDataSource
+    '     - connection: Connection
+    '     - DB_URL: String
+    '     __
+    '     - SQLiteDataSource()
+    '     + {static} getInstance(): SQLiteDataSource
+    '     + getConnection(): Connection
+    '     - initializeDatabase()
+    '     - createTables()
+    ' }
     
-    class ArticleDao {
-        - database: IDatabase
-        
-        + ArticleDao(database: IDatabase)
-        + insert(title: String, content: String, filePath: String, totalWords: int, uniqueWords: int): int
-        + delete(articleId: int): void
-        + findById(articleId: int): Map<String, Object>
-        + findAll(): List<Map<String, Object>>
-    }
+    ' class SQLiteArticleDAO {
+    '     - dataSource: SQLiteDataSource
+    '     __
+    '     + SQLiteArticleDAO(dataSource)
+    '     + loadAll(): List<DBArticleDTO>
+    '     + loadById(id: int): DBArticleDTO
+    '     + save(dto: DBArticleDTO): boolean
+    '     + delete(id: int): boolean
+    ' }
     
-    class DictionaryDao {
-        - database: IDatabase
-        - jsonParser: JSONParser
-        
-        + DictionaryDao(database: IDatabase, jsonParser: JSONParser)
-        + loadFromJSON(jsonPath: String, level: String): void
-        + findByWord(word: String): Map<String, Object>
-        + isLevelLoaded(level: String): boolean
-    }
+    ' class SQLiteDictionaryDAO {
+    '     - dataSource: SQLiteDataSource
+    '     __
+    '     + SQLiteDictionaryDAO(dataSource)
+    '     + loadAll(): List<DBWordDTO>
+    '     + count(): int
+    '     + saveWords(words: List<DBWordDTO>): boolean
+    ' }
     
-    class UserWordDao {
-        - database: IDatabase
-        
-        + UserWordDao(database: IDatabase)
-        + insert(lemma: String, label: String): void
-        + update(lemma: String, label: String): void
-        + findByLabel(label: String): List<Map<String, Object>>
-        + findByLemma(lemma: String): Map<String, Object>
-        + findAll(): List<Map<String, Object>>
-    }
+    ' class SQLiteUserWordDAO {
+    '     - dataSource: SQLiteDataSource
+    '     __
+    '     + SQLiteUserWordDAO(dataSource)
+    '     + loadAll(): List<DBUserWordStatusDTO>
+    '     + loadByWord(word: String): DBUserWordStatusDTO
+    '     + save(dto: DBUserWordStatusDTO): boolean
+    '     + delete(word: String): boolean
+    ' }
     
-    class ProgressDao {
-        - database: IDatabase
-        
-        + ProgressDao(database: IDatabase)
-        + save(articleId: int, position: int): void
-        + findByArticleId(articleId: int): int
-    }
+    ' class LocalFileLoader {
+    '     + loadFromFile(filePath: Path): DBArticleDTO
+    '     - readFileContent(filePath: Path): String
+    '     - extractTitle(filePath: Path): String
+    ' }
     
-    class SQLiteDatabase {
-        - connection: Connection
-        - {static} instance: SQLiteDatabase
-        
-        - SQLiteDatabase()
-        + getInstance(): SQLiteDatabase {static}
-        + getConnection(): Connection
-        + execute(sql: String): void
-        + query(sql: String): ResultSet
-        + initTables(): void
-    }
+    ' class SystemDictionaryFileLoader {
+    '     + loadDictionaryFromFiles(directoryPath: String): List<DBWordDTO>
+    '     - parseDictionaryFile(filePath: Path): List<DBWordDTO>
+    ' }
     
-    class JSONParser {
-        - gson: Gson
-        
-        + JSONParser()
-        + parseFile(filePath: String): Map<String, Object>
-        + parseArray(json: String): List<Map<String, Object>>
-    }
+    ' class MigrationManager {
+    '     - dbDictionaryLoader: DBDictionaryLoader
+    '     - dbDictionarySaver: DBDictionarySaver
+    '     - fileLoader: SystemDictionaryFileLoader
+    '     - DICT_DATA_PATH: String
+    '     __
+    '     + MigrationManager(dbDictionaryLoader, dbDictionarySaver, fileLoader)
+    '     + runMigrations()
+    '     - needsMigration(): boolean
+    '     - loadSystemDictionary()
+    ' }
+
+    DBArticleLoader ..|> DBLoader
+    DBArticleSaver ..|> DBSaver
+    DBDictionaryLoader ..|> DBLoader
+    DBUserWordLoader ..|> DBLoader
+    DBUserWordSaver ..|> DBSaver
+
+    DBArticleLoader ..> ArticleDTO
+    DBArticleSaver ..> ArticleDTO
+    DBDictionaryLoader ..> WordDTO
+    DBUserWordLoader ..> UserWordStatusDTO
+    DBUserWordSaver ..> UserWordStatusDTO
+    FileArticleLoader ..|> FileLoader
+    FileArticleLoader ..> ArticleDTO
+    FileDictionaryLoader ..|> FileLoader
+    FileDictionaryLoader ..> WordDTO
 }
 
-package "External" {
-    class JFrame <<external>>
-    class Connection <<external>>
-    class ResultSet <<external>>
-    class StanfordCoreNLP <<external>>
-    class Gson <<external>>
-}
+' Presentation -> Domain relationships
+MainWindow --> ArticleService
+MainWindow --> ViewFactory
 
-MainView ..|> IMainView
-ReadingView ..|> IReadingView
-ReportView ..|> IReportView
+ViewFactory ..> ArticleReportView
+ViewFactory ..> ArticleReaderView
+ViewFactory ..> LabeledWordsView
 
-MainView --|> JFrame
-ReadingView --|> JFrame
-ReportView --|> JFrame
+ViewFactory --> ArticleService
+ViewFactory --> VocabularyService
 
-MainView --> MainPresenter
-ReadingView --> ReadingPresenter
-ReportView --> ReportPresenter
+ArticleReaderView --> ArticleService
+ArticleReaderView --> VocabularyService
+ArticleReaderView ..> WordInfo
+ArticleReportView ..> Article
 
-MainPresenter --> IMainView
-MainPresenter --> ArticleManager
-MainPresenter --> Article
 
-ReadingPresenter --> IReadingView
-ReadingPresenter --> ArticleManager
-ReadingPresenter --> VocabularyManager
-ReadingPresenter --> ProgressTracker
-ReadingPresenter --> WordDefinition
+' WordDetailView --> VocabularyService
 
-ReportPresenter --> IReportView
-ReportPresenter --> VocabularyManager
-ReportPresenter --> CSVExporter
-ReportPresenter --> VocabularyStats
+ArticleReportView --> ArticleService
+ArticleReportView --> VocabularyService
 
-ArticleManager --> IArticleDao
-ArticleManager --> NLPProcessor
-ArticleManager --> Article
+LabeledWordsView --> VocabularyService
 
-VocabularyManager --> IDictionaryDao
-VocabularyManager --> IUserWordDao
-VocabularyManager --> NLPProcessor
-VocabularyManager --> WordDefinition
-VocabularyManager --> UserWord
-VocabularyManager --> VocabularyStats
 
-ProgressTracker --> IProgressDao
+' Domain -> Datasource relationships
+ArticleRepository --> DBLoader
+ArticleRepository --> DBSaver
+ArticleRepository --> FileLoader
+ArticleRepository ..> ArticleDTO
 
-CSVExporter --> IUserWordDao
+DictionaryRepository --> DBLoader
+DictionaryRepository ..> WordDTO
 
-NLPProcessor ..> StanfordCoreNLP
+UserWordRepository --> DBLoader
+UserWordRepository --> DBSaver
+UserWordRepository ..> UserWordStatusDTO
 
-WordDefinition --> Translation
-WordDefinition --> Phrase
+' Domain layer relationships
+' ArticleRepository --> DBArticleLoader
+' ArticleRepository --> DBArticleSaver
+' ArticleRepository --> FileArticleLoader
+' ArticleRepository --> ArticleDataMapper
+' ArticleRepository ..> Article : manages
 
-ArticleDao ..|> IArticleDao
-DictionaryDao ..|> IDictionaryDao
-UserWordDao ..|> IUserWordDao
-ProgressDao ..|> IProgressDao
-SQLiteDatabase ..|> IDatabase
+' DictionaryRepository --> DBDictionaryLoader
+' DictionaryRepository --> WordDataMapper
+' DictionaryRepository ..> Word : manages
 
-ArticleDao --> IDatabase
-DictionaryDao --> IDatabase
-DictionaryDao --> JSONParser
-UserWordDao --> IDatabase
-ProgressDao --> IDatabase
+' UserWordRepository --> DBUserWordLoader
+' UserWordRepository --> DBUserWordSaver
+' UserWordRepository --> UserWordStatusMapper
+' UserWordRepository ..> UserWordStatus : manages
 
-JSONParser ..> Gson
-SQLiteDatabase ..> Connection
-NLPProcessor ..> WordAnalysis
+' VocabularyService --> DictionaryRepository
+' VocabularyService --> UserWordRepository
+' VocabularyService ..> WordInfo : creates
+' VocabularyService ..> VocabularyStats : creates
+' VocabularyService ..> ArticleVocabularyAnalysis : creates
+
+' ArticleManager --> ArticleRepository
+
+' UserWordStatus --> WordStatusEnum
+
+' Domain -> DataSource relationships
+' ArticleDataMapper ..> DBArticleDTO
+' ArticleDataMapper ..> Article
+
+' WordDataMapper ..> DBWordDTO
+' WordDataMapper ..> Word
+
+' UserWordStatusMapper ..> DBUserWordStatusDTO
+' UserWordStatusMapper ..> UserWordStatus
+
+' DataSource layer relationships
+' SQLiteArticleDAO ..|> DBArticleLoader
+' SQLiteArticleDAO ..|> DBArticleSaver
+' SQLiteArticleDAO --> SQLiteDataSource
+' SQLiteArticleDAO ..> DBArticleDTO
+
+' SQLiteDictionaryDAO ..|> DBDictionaryLoader
+' SQLiteDictionaryDAO ..|> DBDictionarySaver
+' SQLiteDictionaryDAO --> SQLiteDataSource
+' SQLiteDictionaryDAO ..> DBWordDTO
+
+' SQLiteUserWordDAO ..|> DBUserWordLoader
+' SQLiteUserWordDAO ..|> DBUserWordSaver
+' SQLiteUserWordDAO --> SQLiteDataSource
+' SQLiteUserWordDAO ..> DBUserWordStatusDTO
+
+' LocalFileLoader ..|> FileArticleLoader
+' LocalFileLoader ..> DBArticleDTO
+
+' MigrationManager --> DBDictionaryLoader
+' MigrationManager --> DBDictionarySaver
+' MigrationManager --> SystemDictionaryFileLoader
+
+' SystemDictionaryFileLoader ..> DBWordDTO
+
+
 @enduml
