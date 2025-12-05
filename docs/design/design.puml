@@ -97,11 +97,11 @@ package domain {
         - spec: ArticleSpec
         __
         ~ Article(id, title, content, filePath, importDate)
-        ~ countWords(): int
-        ~ countUniqueWords(): int
-        ~ getWords(): List<String>
-        ~ getUniqueWords(): Set<String>
-        ~ getters()
+        + countWords(): int
+        + countUniqueWords(): int
+        + getWords(): List<String>
+        + getUniqueWords(): Set<String>
+        + getters()
     }
 
     class ArticleSpec {
@@ -111,8 +111,7 @@ package domain {
         - unknownWords: int
         - wordLevelDistribution: Map<String, Integer>
         __
-        + ArticleVocabularyAnalysis(totalWords, uniqueWords, knownWords, unknownWords, wordLevelDistribution)
-        + getKnownPercentage(): double
+        ~ ArticleVocabularyAnalysis(totalWords, uniqueWords, knownWords, unknownWords, wordLevelDistribution)
         + getters()
     }
     
@@ -255,17 +254,17 @@ package domain {
     }
      
     class ArticleDataMapper {
-        + toEntity(dto: DBArticleDTO): Article
-        + toDTO(entity: Article): DBArticleDTO
+        ~ toEntity(dto: DBArticleDTO): Article
+        ~ toDTO(entity: Article): DBArticleDTO
     }
     
     class WordDataMapper {
-        + toEntity(dto: DBWordDTO): Word
+        ~ toEntity(dto: DBWordDTO): Word
     }
     
     class UserWordStatusMapper {
-        + toEntity(dto: DBUserWordStatusDTO): UserWordStatus
-        + toDTO(entity: UserWordStatus): DBUserWordStatusDTO
+        ~ toEntity(dto: DBUserWordStatusDTO): UserWordStatus
+        ~ toDTO(entity: UserWordStatus): DBUserWordStatusDTO
     }
 
     Article --> ArticleSpec
@@ -300,33 +299,33 @@ package datasource {
     
     ' DTOs
     class ArticleDTO {
-        + id: int
-        + title: String
-        + content: String
-        + filePath: String
-        + importDate: String
-        + totalWords: int
-        + uniqueWords: int
-        + knownWords: int
-        + unknownWords: int
-        + wordLevelDistribution: String
+        - id: int
+        - title: String
+        - content: String
+        - filePath: String
+        - importDate: String
+        - totalWords: int
+        - uniqueWords: int
+        - knownWords: int
+        - unknownWords: int
+        - wordLevelDistribution: String
         __
-        + ArticleDTO(id, title, content, filePath, importDate)
+        + ArticleDTO(id, title, content, filePath, importDate, totalWords, uniqueWords, knownWords, unknownWords, wordLevelDistribution)
         + getters/setters()
     }
     
     class WordDTO {
-        + word: String
-        + levels: String
+        - word: String
+        - levels: String
         __
         + WordDTO(word, levels)
         + getters/setters()
     }
     
     class UserWordStatusDTO {
-        + word: String
-        + status: String
-        + markedDate: String
+        - word: String
+        - status: String
+        - markedDate: String
         __
         + UserWordStatusDTO(word, status, markedDate)
         + getters/setters()
