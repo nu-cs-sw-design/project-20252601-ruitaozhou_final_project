@@ -58,3 +58,32 @@ Services depend on concrete repository classes rather than repository interfaces
 15. Low Coupling and High Cohesion
 Partially complies.
 The Services expose many public methods and depend on multiple repositories, which increases coupling and decreases chohesion. Separating Service, Repository, and Entity into distinct classes introduces more classes, but it improves organization and supports clearer business logic. Repository methods are kept package-private, which helps limit the public API surface and reduce unnecessary coupling.
+
+
+---
+# Software Requirement Changes in the Future
+
+1. Introduce tagging or categorization for articles and vocabulary.
+
+    **How the design handles it:**  
+    New fields can be added to the corresponding entities, and Repositories can persist them without major structural changes. UI only requires additional filters or displays. This change is easily supported by the current architecture.
+
+2. Support exporting data in multiple output formats instead of only CSV.
+
+    **How the design handles it:**  
+    Additional FileSaver implementations (e.g., JSONSaver, PDFSaver) can be added as needed. The Presentation layer can introduce new onExportTo handlers, and VocabularyService can provide an exportLabeledWordsTo(format) function to support multiple export formats.
+
+3. Add a cross-article comparison interface.
+
+    **How the design handles it:**  
+    A new View and a new MultiArticleService can be added to perform multi-article analysis. However, the current ArticleService already mixes CRUD and analysis logic, so adding cross-article features may require refactoring. The change is partially supported.
+
+4. Add user accounts and per-user article libraries.
+
+    **How the design handles it:** 
+    The current model is single-user and does not attach user identity to Articles or Vocabulary states. Supporting multi-user functionality would require modifying domain entities, Repositories, and Services. This change is not naturally supported by the existing design.
+
+5. Convert the application into a browser extension that analyzes articles directly on web pages.
+
+    **How the design handles it:**  
+    The core domain logic and Services could be reused, but the Presentation layer and FileLoader mechanisms would require substantial redesign. The current desktop-oriented UI and file-based import model do not translate directly to a browser extension environment. This change is poorly supported without major architectural adjustments.

@@ -70,6 +70,7 @@ package presentation {
         - initializeUI()
         - refreshWordList()
         - updateStats()
+        - onExportToCSV()
     }
     
     ' View Factory
@@ -197,16 +198,18 @@ package domain {
     class UserWordRepository {
         - dbLoader: DBLoader
         - dbSaver: DBSaver
+        - fileSaver: FileSaver
         - mapper: Mapper
         - userWordCache: Map<String, UserWordStatus>
         __
-        ~ UserWordRepository(dbLoader, dbSaver, mapper)
+        ~ UserWordRepository(dbLoader, dbSaver, fileSaver, mapper)
         ~ getUserWordStatus(word: String): UserWordStatus
         ~ updateWordStatus(word: String, status: WordStatusEnum): boolean
         ~ getAllUserWords(): List<UserWordStatus>
         ~ getAllMasteredWords(): List<UserWordStatus>
         ~ getAllNotMasteredWords(): List<UserWordStatus>
         ~ count(): int
+        ~ exportLabeledVocabulary(filePath: Path): boolean
         - loadAllUserWords()
     }
     
@@ -222,6 +225,7 @@ package domain {
         + getAllUserWords(): List<UserWordStatus>
         + getMasteredWords(): List<UserWordStatus>
         + getNotMasteredWords(): List<UserWordStatus>
+        + exportLabeledVocabularyToCSV(filePath: Path): boolean
         - extractWords(text: String): Set<String>
     }
 
@@ -292,7 +296,6 @@ package domain {
     UserWordRepository --> Mapper
 
     UserWordStatus --> WordStatusEnum
-
 }
 
 package datasource {
@@ -346,6 +349,10 @@ package datasource {
         + loadFromFile(filePath: Path): Object
     }
 
+    interface FileSaver {
+        + saveToFile(filePath: Path, data: Object): boolean
+    }
+
     ' Implementations
     class DBArticleLoader {
         + hasNext(): boolean
@@ -379,6 +386,9 @@ package datasource {
         + loadDictionaryFromFiles(directoryPath: String): List<DBWordDTO>
     }
 
+    class FileArticleSaver {
+        + saveToFile(filePath: Path, data: DBArticleDTO): boolean
+    }
 
     ' class SQLiteDataSource {
     '     - {static} instance: SQLiteDataSource
@@ -459,6 +469,8 @@ package datasource {
     FileArticleLoader ..> ArticleDTO
     FileDictionaryLoader ..|> FileLoader
     FileDictionaryLoader ..> WordDTO
+    FileArticleSaver ..|> FileSaver
+    FileArticleSaver ..> ArticleDTO
 }
 
 ' Presentation -> Domain relationships
@@ -498,6 +510,7 @@ DictionaryRepository ..> WordDTO
 UserWordRepository --> DBLoader
 UserWordRepository --> DBSaver
 UserWordRepository ..> UserWordStatusDTO
+UserWordRepository --> FileSaver
 
 ' Domain layer relationships
 ' ArticleRepository --> DBArticleLoader
